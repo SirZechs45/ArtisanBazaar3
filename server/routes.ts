@@ -74,15 +74,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(session({
     store: new PostgresStore({
       conString: process.env.DATABASE_URL,
-      tableName: 'sessions', // Default
-      createTableIfMissing: true, // Create the sessions table if it doesn't exist
+      tableName: 'sessions',
+      createTableIfMissing: true,
     }),
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
     saveUninitialized: false,
+    proxy: true,
     cookie: { 
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      httpOnly: true
     }
   }));
   
