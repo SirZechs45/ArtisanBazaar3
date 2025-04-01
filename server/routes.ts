@@ -39,11 +39,11 @@ try {
 import pgSession from 'connect-pg-simple';
 const PostgresStore = pgSession(session);
 
-// Configure multer for file uploads
+// Configure multer for file uploads (using memory storage)
 const uploadsDir = path.join(process.cwd(), "uploads");
 const productsDir = path.join(uploadsDir, "products");
 
-// Ensure directories exist
+// Keep directory logic for backwards compatibility and fallback
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
@@ -51,21 +51,9 @@ if (!fs.existsSync(productsDir)) {
   fs.mkdirSync(productsDir, { recursive: true });
 }
 
-// Setup multer storage
-const uploadStorage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, productsDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    cb(null, uniqueSuffix + ext);
-  }
-});
-
-// Create multer upload instance
+// Use memory storage instead of disk storage for cloud deployment compatibility
 const upload = multer({
-  storage: uploadStorage,
+  storage: multer.memoryStorage(), // Store in memory
   limits: {
     fileSize: 5 * 1024 * 1024 // 5MB limit
   },
@@ -528,7 +516,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Image Upload API
+  // Image Upload API - Store directly in-memory/DB instead of files
   app.post('/api/upload', isAuthenticated, upload.single('image'), async (req, res) => {
     try {
       // Check if file exists
@@ -536,15 +524,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'No file uploaded' });
       }
 
-      // Return the path to the uploaded file
-      const serverUrl = `${req.protocol}://${req.get('host')}`;
-      const filePath = `/uploads/products/${req.file.filename}`;
-      const fileUrl = `${serverUrl}${filePath}`;
+      // Convert image to base64 format for storage in DB
+      const imageBuffer = req.file.buffer || fs.readFileSync(req.file.path);
+      const base64Image = `data:${req.file.mimetype};base64,${imageBuffer.toString('base64')}`;
+      
+      // Generate a unique ID for the image
+      const imageId = `img_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      
+      // If using multer's disk storage, we need to clean up the file
+      if (req.file.path && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
 
       res.json({
         success: true,
-        imageUrl: fileUrl,
-        filePath: filePath
+        imageUrl: imageId, // We'll use this ID as a reference
+        imageData: base64Image, // The actual image data
+        mimeType: req.file.mimetype
       });
     } catch (error) {
       res.status(500).json({ 

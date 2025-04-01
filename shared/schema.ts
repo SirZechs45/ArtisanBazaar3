@@ -29,7 +29,8 @@ export const products = pgTable("products", {
   description: text("description").notNull(),
   price: numeric("price").notNull(),
   quantityAvailable: integer("quantity_available").notNull(),
-  images: text("images").array().notNull(),
+  images: text("images").array().notNull(), // URLs or base64 encoded strings
+  imageBinaries: jsonb("image_binaries").default(JSON.stringify([])),  // Store binary images in JSON format
   category: text("category").notNull(),
   colorOptions: text("color_options").array(),
   variants: text("variants").array(),

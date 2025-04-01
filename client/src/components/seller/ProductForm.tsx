@@ -64,6 +64,8 @@ interface ProductFormProps {
 export default function ProductForm({ product, onSuccess }: ProductFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [imageUrls, setImageUrls] = useState<string[]>(product?.images || []);
+  // Store image binaries separately
+  const [imageBinaries, setImageBinaries] = useState<{[key: string]: string}>(product?.imageBinaries ? JSON.parse(product.imageBinaries as string) : {});
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -102,6 +104,7 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
         quantityAvailable: parseInt(values.quantityAvailable),
         category: values.category,
         images: values.images,
+        imageBinaries: JSON.stringify(imageBinaries), // Add image binaries as JSON string
       };
 
       if (product) {
@@ -132,6 +135,7 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
       if (!product) {
         form.reset();
         setImageUrls([]);
+        setImageBinaries({}); // Reset image binaries
       }
     } catch (error: any) {
       toast({
@@ -186,10 +190,16 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
       const data = await response.json();
       
       if (data.success) {
-        // Add image URL to form state
+        // Add image URL reference to form state
         const newUrls = [...imageUrls, data.imageUrl];
         setImageUrls(newUrls);
         form.setValue("images", newUrls);
+        
+        // Store the image binary data in our state
+        setImageBinaries(prev => ({
+          ...prev,
+          [data.imageUrl]: data.imageData // Store base64 image data with the URL as key
+        }));
         
         toast({
           title: "Image Uploaded",
@@ -214,10 +224,20 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
   };
 
   const removeImage = (index: number) => {
+    const urlToRemove = imageUrls[index];
+    
+    // Update URLs array
     const updatedImages = [...imageUrls];
     updatedImages.splice(index, 1);
     setImageUrls(updatedImages);
     form.setValue("images", updatedImages);
+    
+    // Also remove from image binaries if it exists
+    if (imageBinaries[urlToRemove]) {
+      const updatedBinaries = { ...imageBinaries };
+      delete updatedBinaries[urlToRemove];
+      setImageBinaries(updatedBinaries);
+    }
   };
 
   return (
@@ -334,7 +354,7 @@ export default function ProductForm({ product, onSuccess }: ProductFormProps) {
                       </Button>
                       <CardContent className="p-2">
                         <img 
-                          src={url} 
+                          src={imageBinaries[url] || url} 
                           alt={`Product image ${index + 1}`} 
                           className="w-full h-24 object-cover rounded"
                         />

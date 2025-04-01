@@ -40,6 +40,29 @@ import {
 } from "lucide-react";
 import { ModificationRequestForm } from "@/components/product/ModificationRequestForm";
 
+// Helper function to get image source (either from binary data or fallback to URL)
+const getImageSource = (product: Product, index: number): string => {
+  const imageUrl = product.images[index];
+  // Check if the product has image binaries stored
+  if (product.imageBinaries) {
+    try {
+      // Parse the JSON string if it exists
+      const binaries = typeof product.imageBinaries === 'string' 
+        ? JSON.parse(product.imageBinaries) 
+        : product.imageBinaries;
+      
+      // Return the binary data for the image if available
+      if (binaries && binaries[imageUrl]) {
+        return binaries[imageUrl];
+      }
+    } catch (e) {
+      console.error("Error parsing image binaries:", e);
+    }
+  }
+  // Fallback to the URL
+  return imageUrl;
+};
+
 export default function ProductDetail() {
   const [match, params] = useRoute<{ id: string }>("/products/:id");
   const { isAuthenticated, user } = useAuth();
@@ -248,7 +271,7 @@ export default function ProductDetail() {
               <div>
                 <div className="relative bg-gray-100 rounded-lg overflow-hidden h-[400px]">
                   <img 
-                    src={product.images[activeImageIndex]} 
+                    src={getImageSource(product, activeImageIndex)} 
                     alt={product.title} 
                     className="w-full h-full object-contain"
                   />
@@ -268,7 +291,7 @@ export default function ProductDetail() {
                         onClick={() => setActiveImageIndex(index)}
                       >
                         <img 
-                          src={image} 
+                          src={getImageSource(product, index)} 
                           alt={`${product.title} - Image ${index + 1}`} 
                           className="w-full h-full object-cover"
                         />
