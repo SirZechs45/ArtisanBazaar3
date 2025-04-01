@@ -349,6 +349,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: 'You can only create products for yourself' });
       }
       
+      // Prepare imageBinaries if provided
+      if (req.body.imageBinaryData) {
+        const imageBinaries = {};
+        // Map each image URL to its binary data
+        for (const img of productData.images) {
+          if (req.body.imageBinaryData[img]) {
+            imageBinaries[img] = req.body.imageBinaryData[img];
+          }
+        }
+        productData.imageBinaries = imageBinaries;
+      }
+      
       const product = await storage.createProduct(productData);
       res.status(201).json(product);
     } catch (error) {
@@ -370,6 +382,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(req.session.userId);
       if (user?.role !== 'admin' && product.sellerId !== req.session.userId) {
         return res.status(403).json({ message: 'You can only update your own products' });
+      }
+      
+      // Prepare imageBinaries if provided
+      if (req.body.imageBinaryData) {
+        const imageBinaries = {};
+        // Map each image URL to its binary data
+        for (const img of updates.images || []) {
+          if (req.body.imageBinaryData[img]) {
+            imageBinaries[img] = req.body.imageBinaryData[img];
+          }
+        }
+        updates.imageBinaries = imageBinaries;
       }
       
       const updatedProduct = await storage.updateProduct(productId, updates);
@@ -530,6 +554,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Generate a unique ID for the image
       const imageId = `img_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      
+      // Create uploads directory if it doesn't exist
+      const uploadDir = path.join(__dirname, '..', 'uploads');
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      
+      // Save image to uploads directory
+      const imagePath = path.join(uploadDir, `${imageId}`);
+      fs.writeFileSync(imagePath, imageBuffer);
       
       // If using multer's disk storage, we need to clean up the file
       if (req.file.path && fs.existsSync(req.file.path)) {

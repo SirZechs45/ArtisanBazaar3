@@ -48,7 +48,7 @@ const getImageSource = (product: Product, index: number): string => {
     try {
       // Parse the JSON string if it exists
       const binaries = typeof product.imageBinaries === 'string' 
-        ? JSON.parse(product.imageBinaries) 
+        ? JSON.parse(product.imageBinaries as string) 
         : product.imageBinaries;
       
       // Return the binary data for the image if available
@@ -60,7 +60,7 @@ const getImageSource = (product: Product, index: number): string => {
     }
   }
   // Fallback to the URL
-  return imageUrl;
+  return `/uploads/${imageUrl}`;
 };
 
 export default function ProductDetail() {
