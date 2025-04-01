@@ -122,11 +122,16 @@ CREATE INDEX IF NOT EXISTS "idx_cart_items_user" ON "cart_items"("user_id");
 CREATE INDEX IF NOT EXISTS "idx_notifications_user" ON "notifications"("user_id");
 CREATE INDEX IF NOT EXISTS "idx_modification_requests_product" ON "product_modification_requests"("product_id");
 
--- Create session table for express-session with connect-pg-simple
-CREATE TABLE IF NOT EXISTS "session" (
-  "sid" varchar NOT NULL COLLATE "default",
-  "sess" json NOT NULL,
-  "expire" TIMESTAMP(6) NOT NULL,
-  CONSTRAINT "session_pkey" PRIMARY KEY ("sid") NOT DEFERRABLE INITIALLY IMMEDIATE
-);
-CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire");
+-- Create session table for express-session with connect-pg-simple if it doesn't exist
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'session') THEN
+    CREATE TABLE "session" (
+      "sid" varchar NOT NULL COLLATE "default",
+      "sess" json NOT NULL,
+      "expire" TIMESTAMP(6) NOT NULL,
+      CONSTRAINT "session_pkey" PRIMARY KEY ("sid") NOT DEFERRABLE INITIALLY IMMEDIATE
+    );
+    CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire");
+  END IF;
+END $$;

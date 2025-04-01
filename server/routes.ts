@@ -548,26 +548,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'No file uploaded' });
       }
 
+      console.log("Uploaded file: ", req.file);
+
       // Convert image to base64 format for storage in DB
-      const imageBuffer = req.file.buffer || fs.readFileSync(req.file.path);
+      const imageBuffer = req.file.buffer;
+      if (!imageBuffer) {
+        return res.status(400).json({ message: 'Invalid file buffer' });
+      }
+
       const base64Image = `data:${req.file.mimetype};base64,${imageBuffer.toString('base64')}`;
       
       // Generate a unique ID for the image
       const imageId = `img_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
       
-      // Create uploads directory if it doesn't exist
-      const uploadDir = path.join(__dirname, '..', 'uploads');
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
-      
-      // Save image to uploads directory
-      const imagePath = path.join(uploadDir, `${imageId}`);
-      fs.writeFileSync(imagePath, imageBuffer);
-      
-      // If using multer's disk storage, we need to clean up the file
-      if (req.file.path && fs.existsSync(req.file.path)) {
-        fs.unlinkSync(req.file.path);
+      try {
+        // Create uploads directory if it doesn't exist
+        const uploadDir = path.join(process.cwd(), 'uploads');
+        const productsDir = path.join(uploadDir, 'products');
+        
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true, mode: 0o755 });
+        }
+        if (!fs.existsSync(productsDir)) {
+          fs.mkdirSync(productsDir, { recursive: true, mode: 0o755 });
+        }
+        
+        // Save image to uploads/products directory
+        const imagePath = path.join(productsDir, `${imageId}`);
+        await fs.promises.writeFile(imagePath, imageBuffer);
+        
+        console.log("File saved successfully at:", imagePath);
+      } catch (fsError) {
+        console.error("File system error:", fsError);
+        return res.status(500).json({ 
+          success: false, 
+          message: 'Error saving file to disk',
+          error: fsError instanceof Error ? fsError.message : 'Unknown error'
+        });
       }
 
       res.json({
