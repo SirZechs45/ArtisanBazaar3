@@ -11,6 +11,8 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, like, or, and } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 
 export interface IStorage {
   // User methods
@@ -613,8 +615,10 @@ export class DatabaseStorage implements IStorage {
   // Product methods
   async getProduct(id: number): Promise<Product | undefined> {
     try {
-      const [product] = await db.select().from(products).where(eq(products.id, id));
-      return product;
+      const product = await db.query.products.findFirst({
+        where: eq(products.id, id)
+      });
+      return product || undefined;
     } catch (error) {
       console.error("Error getting product:", error);
       return undefined;
@@ -693,7 +697,8 @@ export class DatabaseStorage implements IStorage {
 
   async getAllProducts(): Promise<Product[]> {
     try {
-      return await db.select().from(products);
+      // Select column using the column name in the database
+      return await db.query.products.findMany();
     } catch (error) {
       console.error("Error getting all products:", error);
       return [];

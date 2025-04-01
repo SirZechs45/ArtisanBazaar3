@@ -702,6 +702,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create order
       const newOrder = await storage.createOrder(orderData, items);
       
+      // Update product quantities
+      for (const item of items) {
+        const product = await storage.getProduct(item.productId);
+        if (product) {
+          const newQuantity = Number(product.quantityAvailable) - Number(item.quantity);
+          await storage.updateProduct(item.productId, { 
+            quantityAvailable: newQuantity >= 0 ? newQuantity : 0 
+          });
+          console.log(`Updated stock for product ${item.productId}: ${product.quantityAvailable} -> ${newQuantity}`);
+        }
+      }
+      
       // Clear the cart
       await storage.clearCart(req.session.userId);
       
