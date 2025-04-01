@@ -52,7 +52,7 @@ export default function ProductCard({ product }: ProductCardProps) {
       <div className="relative">
         <Link href={`/products/${product.id}`}>
           <img 
-            src={product.images[0]} 
+            src={product.imageBinaries && product.imageBinaries[product.images[0]] || `/uploads/${product.images[0]}`}
             alt={product.title} 
             className="w-full h-56 object-cover"
           />

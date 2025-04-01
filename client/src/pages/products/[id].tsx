@@ -43,24 +43,8 @@ import { ModificationRequestForm } from "@/components/product/ModificationReques
 // Helper function to get image source (either from binary data or fallback to URL)
 const getImageSource = (product: Product, index: number): string => {
   const imageUrl = product.images[index];
-  // Check if the product has image binaries stored
-  if (product.imageBinaries) {
-    try {
-      // Parse the JSON string if it exists
-      const binaries = typeof product.imageBinaries === 'string' 
-        ? JSON.parse(product.imageBinaries as string) 
-        : product.imageBinaries;
-      
-      // Return the binary data for the image if available
-      if (binaries && binaries[imageUrl]) {
-        return binaries[imageUrl];
-      }
-    } catch (e) {
-      console.error("Error parsing image binaries:", e);
-    }
-  }
-  // Fallback to the URL
-  return `/uploads/${imageUrl}`;
+  // Return binary data if available, otherwise fallback to URL
+  return product.imageBinaries?.[imageUrl] || `/uploads/${imageUrl}`;
 };
 
 export default function ProductDetail() {
